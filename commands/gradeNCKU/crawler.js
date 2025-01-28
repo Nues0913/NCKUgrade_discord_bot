@@ -1,21 +1,22 @@
 import axios from 'axios';
-import { CookieJar } from 'tough-cookie';
+import { Cookie, CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
-import { title } from 'process';
+
+CookieJar
 
 class AuthService {
     #instance = null;
     #authUrl = "https://fs.ncku.edu.tw/adfs/oauth2/authorize?response_type=code&client_id=ed91740c-7959-4a7d-9f2d-2c40ca668de6&redirect_uri=https:%2F%2Fqrys.ncku.edu.tw%2Fncku%2Fqrys02.asp&state=a3d43d78695f1e9a25332a4f52dc7903&resource=http:%2F%2Fqrys.ncku.edu.tw%2Fncku%2Fqrys02.asp";
     #baseUrl = "https://qrys.ncku.edu.tw/ncku/";
-    #account;
-    #cookieJar;
+    #mainPage = "qrys02.asp";
+    #account = null;
+    #cookieJar = new CookieJar();
     #cache = {gradeCur : null};
     // TODO: cache
 
     constructor() {
-        this.#cookieJar = new CookieJar();
         this.#instance = wrapper(axios.create({
             baseURL: this.#baseUrl,
             jar: this.#cookieJar,
@@ -26,11 +27,33 @@ class AuthService {
     }
 
     /**
-     * 登入
-     * @param {string} account
+     * Login.
+     * 
+     * When password is undefined, account will be treated as cookie.
+     * 
+     * You can directly get the cookie string from browser, function will auto parse it.
+     * 
+     * @param {string} account - account, treated as cookie when password is undefined
      * @param {string} password
+     * @throws {Error} - login error message
      */
     async login(account, password) {
+        // login with cookie
+        if(password === undefined) {
+            const cookie = account;
+            account.split('; ').forEach((cookieStr) => {
+                const cookie = Cookie.parse(cookieStr);
+                try {
+                    if (cookie.key.startsWith("ASPSESSIONID")) {
+                        this.#cookieJar.setCookieSync(cookie, this.#baseUrl);
+                    }
+                } catch (error) {
+                    throw error;
+                }
+            });
+            return;
+        }
+        // login with account and password
         try {
             const loginResponse = await this.#instance.post(this.#authUrl, {
                 UserName: account,
@@ -41,7 +64,7 @@ class AuthService {
                     "Content-Type": "application/x-www-form-urlencoded",
                 }
             });
-            if (loginResponse.status == 200 && loginResponse.request.res.responseUrl.includes(this.#baseUrl + 'qrys02.asp')) {
+            if (loginResponse.status == 200 && loginResponse.request.res.responseUrl.includes(this.#baseUrl + this.#mainPage)) {
                 console.log('登入成功:', loginResponse.request.res.responseUrl);
                 this.#account = account;
             } else {
@@ -75,7 +98,7 @@ class AuthService {
 
     async getGradeCur() {
         try {
-            if (this.#account === undefined) {
+            if (this.#account === null && this.#cookieJar === null) {
                 throw new Error("not login yet.");
             }
             if(this.#cache.gradeCur === null) {
@@ -85,7 +108,7 @@ class AuthService {
             }
             // parse data
             const $ = cheerio.load(this.#cache.gradeCur);
-            console.log(`獲取用戶 ${this.#account} 成績`);
+            console.log(`獲取用戶 ${this.#account ? this.#account : "透過cookie登入"} 成績`);
             const gradeObj = {title: '', subjects: []};
             $('body > table[bgcolor="#66CCFF"] > tbody').find('tr').each((index, element) => {
                 if($(element).text().includes('學年第')) {
@@ -103,6 +126,7 @@ class AuthService {
             if(gradeObj["title"] === '') {
                 throw new Error("no grade data.");
             }
+            console.log(this.#cookieJar.getCookiesSync(this.#baseUrl));
             return gradeObj;
         } catch (error) {
             throw error;
@@ -113,6 +137,7 @@ class AuthService {
 export default AuthService;
 
 // const scraper = new AuthService();
+// // scraper.login('cookies')
 // scraper.login('', '')
 //     .then(async () => {
 //         const grade = await scraper.getGradeCur();
