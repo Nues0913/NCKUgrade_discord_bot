@@ -51,9 +51,9 @@ client.on(Events.InteractionCreate, async interaction => {
     } catch (error) {
         console.error(error);
         if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+            await interaction.followUp({ content: 'There was an error while executing this command!', flags: "Ephemeral" });
         } else {
-            await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+            await interaction.reply({ content: 'There was an error while executing this command!', flags: "Ephemeral" });
         }
     }
 });
@@ -66,7 +66,7 @@ client.on(Events.MessageCreate, async (message) => {
             client.commands.clear();
             commands = [];
             for (const file of files) {
-                const command = await import(file);
+                const command = await import(`${file}?update=${Date.now()}`);   // https://futurestud.io/tutorials/node-js-esm-bypass-cache-for-dynamic-imports
                 if ('data' in command && 'execute' in command) {
                     client.commands.set(command.data.name, command);
                     commands.push(command.data.toJSON());
@@ -74,8 +74,8 @@ client.on(Events.MessageCreate, async (message) => {
             }
             const rest = new REST({ version: '10' }).setToken(TOKEN);
             await rest.put(Routes.applicationCommands(CLIENT_ID, GUILD_ID), { body: commands });
-            console.log(`Commands reloaded by ${message.author.tag}.`);
-            await message.reply('Commands reloaded successfully.'); // Ephemeral responses are only available for interaction responses
+            console.log(`${commands.length} Commands reloaded by ${message.author.tag}.`);
+            await message.reply(`${commands.length} Commands reloaded successfully.`);  // Ephemeral responses are only available for interaction responses
         } catch (error) {
             console.error(error);
             message.reply('There was an error while reloading commands.');
