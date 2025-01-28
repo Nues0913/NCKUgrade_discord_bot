@@ -1,9 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 
 const data = new SlashCommandBuilder()
     .setName('grade')
     .setDescription('國立成功大學學籍系統');
-
 /*
 const data = new SlashCommandBuilder()
     .setName('grade')
@@ -35,10 +34,48 @@ const data = new SlashCommandBuilder()
     )
 */
 
+const actionRow = new ActionRowBuilder()
+.addComponents(
+    new StringSelectMenuBuilder()
+        .setCustomId('grade')
+        .setPlaceholder('請選擇登入方式')
+        .addOptions([
+            {
+                label: '帳號與密碼',
+                value: 'account',
+                description: '使用帳號密碼登入',
+            },
+            {
+                label: 'Cookie',
+                value: 'cookie',
+                description: '使用Cookie登入',
+            }
+        ]));
+
+/**
+ * 
+ * @param {ChatInputCommandInteraction} interaction 
+ */
 async function execute(interaction) {
-    const view = 
-    await interaction.reply({ content: 'This command is under construction.', flags: "Ephemeral" });
-    // await interaction.reply({ embeds: [embed], flags: "Ephemeral" });
+    const response = await interaction.reply({
+        content: '請選擇一個選項：',
+        components: [actionRow],
+        flags: "Ephemeral",
+        withResponse: true, // necessary for response.message
+        });
+    // TODO: 刻UI，刻監聽器或元件互動
+    try {
+        const filter = i => i.customId === 'grade';
+        const confirmation = await response.resource.message.awaitMessageComponent({ filter, time: 60_000 });
+        if(confirmation.customId === 'grade'){
+            await interaction.editReply({content: `${confirmation.values[0]}`, components: []});
+        } else {
+            await interaction.editReply({content: '該互動未受回應', components: []});
+        }
+    } catch (error) {
+        await interaction.editReply({content: '操作逾時', components: []});
+    }
+
 }
 
 export { data, execute };
