@@ -1,16 +1,19 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 const data = new SlashCommandBuilder()
     .setName('ping')
     .setDescription('Replies with Pong!')
-    .addAttachmentOption(option => option
-        .setName('attachment')
-        .setDescription('Attachment to upload')
-        .setRequired(true)
-    )
+    .addBooleanOption(option => option.setName('silent').setDescription('Silent Pong!'));
+
 
 async function execute(interaction) {
-    await interaction.reply('p!');
+    const silent = interaction.options.getBoolean('silent');
+    if (silent) {
+        await interaction.reply({content: "Pong!", ephemeral: true });
+    } else {
+        await interaction.reply("Pong!");
+    }
+    // await interaction.reply({ embeds: [embed] , flags: "Ephemeral" });
 }
 
 export { data, execute };
