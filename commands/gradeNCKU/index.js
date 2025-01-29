@@ -1,5 +1,6 @@
 import { TextInputStyle, TextInputBuilder, ModalBuilder, ButtonBuilder, ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
 import AuthService from './crawler.js';
+import { error, time } from 'console';
 
 const data = new SlashCommandBuilder()
     .setName('grade')
@@ -8,7 +9,7 @@ const data = new SlashCommandBuilder()
 const loginActionRow = new ActionRowBuilder()
     .addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId('grade')
+            .setCustomId('gradeSelectMenu')
             .setPlaceholder('請選擇登入方式')
             .addOptions([
                 {
@@ -23,14 +24,14 @@ const loginActionRow = new ActionRowBuilder()
                 }
             ]));
 
-const APEnterModalActionRow = new ModalBuilder()
-    .setCustomId('grade')
+const APEnterModal = new ModalBuilder()
+    .setCustomId('gradeAPEnter')
     .setTitle('請輸入帳號密碼')
     .addComponents(
         new ActionRowBuilder()
             .addComponents(
                 new TextInputBuilder()
-                    .setCustomId('account')
+                    .setCustomId('accountEnter')
                     .setLabel('帳號')
                     .setPlaceholder('請輸入學號@ncku.edu.tw')
                     .setStyle(TextInputStyle.Short)
@@ -39,34 +40,34 @@ const APEnterModalActionRow = new ModalBuilder()
         new ActionRowBuilder()
             .addComponents(
                 new TextInputBuilder()
-                .setCustomId('password')
+                .setCustomId('passwordEnter')
                     .setLabel('密碼')
                     .setPlaceholder('請輸入密碼')
                     .setStyle(TextInputStyle.Short)
                     .setRequired(true)
             ));
 
-const cookieEnterModalActionRow = new ModalBuilder()
+const cookieEnterModal = new ModalBuilder()
             .setCustomId('gradeCookieEnter')
             .setTitle('請輸入cookie')
             .addComponents(
                 new ActionRowBuilder()
                     .addComponents(
                         new TextInputBuilder()
-                            .setCustomId('cookie')
+                            .setCustomId('cookieEnter')
                             .setLabel('Cookie')
                             .setPlaceholder('請輸入成績頁面cookie')
                             .setStyle(TextInputStyle.Short)
                             .setRequired(true)
                     ));
 
-const logoutActionRow = new ActionRowBuilder()
-    .addComponents(
-        new ButtonBuilder()
-            .setCustomId('grade')
-            .setLabel('登出')
-            .setStyle('Danger')
-    );
+// const logoutActionRow = new ActionRowBuilder()
+//     .addComponents(
+//         new ButtonBuilder()
+//             .setCustomId('grade')
+//             .setLabel('登出')
+//             .setStyle('Danger')
+//     );
 
 /**
  * 
@@ -81,12 +82,37 @@ async function execute(interaction) {
         });
     // TODO: 刻UI，刻監聽器或元件互動
     try {
-        response = await response.resource.message.awaitMessageComponent({ filter : i => i.customId === 'grade', time: 60_000 });
-        if(response.customId === 'grade'){
+        response = await response.resource.message.awaitMessageComponent({
+            filter : i => i.customId === 'gradeSelectMenu',
+            time: 60_000
+        });
+        if(response.customId === 'gradeSelectMenu'){
             if(!['account','cookie'].includes(response.values[0])) throw new Error('confirmValueError');
-            const modal = response.values[0] === 'account' ? APEnterModalActionRow : cookieEnterModalActionRow;
-            // response = await response.showModal(modal, { withResponse: true, time: 60_000 });
-            // await response.showModal(modal);
+            const modal = response.values[0] === 'account' ? APEnterModal : cookieEnterModal;
+            await response.showModal(modal);
+            response.awaitModalSubmit({
+                filter: i => ['gradeAPEnter', 'gradeCookieEnter'].includes(i.customId),
+                time: 60_000
+            })
+                .then(async (modalInteraction) => {
+                    let a, p;
+                    if(modalInteraction.customId == 'gradeAPEnter'){
+                        a = modalInteraction.fields.getTextInputValue('accountEnter');
+                        p = modalInteraction.fields.getTextInputValue('passwordEnter');
+                        await modalInteraction.deferUpdate();
+                        await interaction.editReply({content: `${a}, ${p}`, components: []});
+                    } else {
+                        a = modalInteraction.fields.getTextInputValue('cookieEnter');
+                        await modalInteraction.deferUpdate();
+                        await interaction.editReply({content: `${a}`, components: []});
+                    }
+                    // console.log(a);
+                    // console.log(p);
+                    // interaction.editReply({content: `${a}, ${p}`, components: []});
+                })
+                .catch((error) => {
+                    console.error(error);
+                })
 
             // // grade crawling
             // const authService = new AuthService();
