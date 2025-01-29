@@ -81,13 +81,13 @@ async function execute(interaction) {
         });
     // TODO: 刻UI，刻監聽器或元件互動
     try {
-        const filter = i => i.customId === 'grade';
-        response = await response.resource.message.awaitMessageComponent({ filter, time: 60_000 });
+        response = await response.resource.message.awaitMessageComponent({ filter : i => i.customId === 'grade', time: 60_000 });
         if(response.customId === 'grade'){
             if(!['account','cookie'].includes(response.values[0])) throw new Error('confirmValueError');
             const modal = response.values[0] === 'account' ? APEnterModalActionRow : cookieEnterModalActionRow;
-            
-            response = await response.showModal(modal, { withResponse: true }); // 這行return沒啥用，可能要寫監聽
+            // response = await response.showModal(modal, { withResponse: true, time: 60_000 });
+            // await response.showModal(modal);
+
             // // grade crawling
             // const authService = new AuthService();
             // let gradeObj = null;
@@ -99,7 +99,6 @@ async function execute(interaction) {
             //     .catch((error) => {
             //         console.error(error);
             //     });
-            console.dir(response);
             // await interaction.editReply({content: `${confirmation.values[0]}`, components: []});
         } else {
             throw new Error('confirmIdError');
