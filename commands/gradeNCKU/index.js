@@ -61,6 +61,22 @@ const cookieEnterModal = new ModalBuilder()
                             .setRequired(true)
                     ));
 
+class gradeNCKUEmbedBuilder extends EmbedBuilder {
+    constructor() {
+        super();
+        this.setColor('#0099ff')
+            .setTitle("國立成功大學學籍系統")
+            .setURL("https://qrys.ncku.edu.tw/ncku/qrys02.asp")
+            .setFooter({ text: 'Powered by Nues0913' });
+    }
+
+    // 添加自定义方法
+    setGradeInfo(student, gpa) {
+        this.setDescription(`学生: **${student}**\nGPA: **${gpa}**`);
+        return this;
+    }
+}
+
 // const logoutActionRow = new ActionRowBuilder()
 //     .addComponents(
 //         new ButtonBuilder()
@@ -80,7 +96,6 @@ async function execute(interaction) {
         flags: "Ephemeral",
         withResponse: true, // necessary for response.message
         });
-    // TODO: 刻UI，刻監聽器或元件互動
     try {
         response = await response.resource.message.awaitMessageComponent({
             filter : i => i.customId === 'gradeSelectMenu',
@@ -90,8 +105,8 @@ async function execute(interaction) {
             if(!['account','cookie'].includes(response.values[0])) throw new Error('confirmValueError');
             const modal = response.values[0] === 'account' ? APEnterModal : cookieEnterModal;
             await response.showModal(modal);
-            response.awaitModalSubmit({
-                filter: i => ['gradeAPEnter', 'gradeCookieEnter'].includes(i.customId),
+            await response.awaitModalSubmit({
+                filter: i => ['gradeAPEnter', 'gradeCookieEnter'].includes(i.customId) && i.user.id == response.user.id,
                 time: 60_000
             })
                 .then(async (modalInteraction) => {
@@ -99,13 +114,14 @@ async function execute(interaction) {
                     if(modalInteraction.customId == 'gradeAPEnter'){
                         a = modalInteraction.fields.getTextInputValue('accountEnter');
                         p = modalInteraction.fields.getTextInputValue('passwordEnter');
-                        await modalInteraction.deferUpdate();
-                        await interaction.editReply({content: `${a}, ${p}`, components: []});
                     } else {
                         a = modalInteraction.fields.getTextInputValue('cookieEnter');
-                        await modalInteraction.deferUpdate();
-                        await interaction.editReply({content: `${a}`, components: []});
                     }
+                    const gradeAuth = new AuthService();
+                    await gradeAuth.login(a, p);
+                    const gradeObj = await gradeAuth.getGradeCur();
+                    await modalInteraction.deferUpdate();
+                    await interaction.editReply({content: `${a}`, components: []});
                     // console.log(a);
                     // console.log(p);
                     // interaction.editReply({content: `${a}, ${p}`, components: []});
@@ -130,8 +146,11 @@ async function execute(interaction) {
             throw new Error('confirmIdError');
         }
     } catch (error) {
-        await interaction.editReply({content: '發生錯誤，請稍後再試', components: []});
-        console.error(error);
+        if(error.name === "Error [InteractionCollectorError]"){
+            await interaction.editReply({content: '連線逾時，請再試一次', components: []});
+        } else {
+            await interaction.editReply({content: '發生錯誤，請稍後再試', components: []});
+        }
     }
 
 }
