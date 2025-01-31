@@ -4,8 +4,6 @@ import { wrapper } from 'axios-cookiejar-support';
 import * as cheerio from 'cheerio';
 import { readFileSync } from 'fs';
 
-CookieJar
-
 class AuthService {
     #instance = null;
     #authUrl = "https://fs.ncku.edu.tw/adfs/oauth2/authorize?response_type=code&client_id=ed91740c-7959-4a7d-9f2d-2c40ca668de6&redirect_uri=https:%2F%2Fqrys.ncku.edu.tw%2Fncku%2Fqrys02.asp&state=a3d43d78695f1e9a25332a4f52dc7903&resource=http:%2F%2Fqrys.ncku.edu.tw%2Fncku%2Fqrys02.asp";
@@ -35,7 +33,7 @@ class AuthService {
      * 
      * @param {string} account - account, treated as cookie when password is undefined
      * @param {string} password
-     * @throws {Error} - login error message
+     * @throws {Error} - new Error("login failed")
      */
     async login(account, password) {
         // login with cookie
@@ -48,7 +46,7 @@ class AuthService {
                         this.#cookieJar.setCookieSync(cookie, this.#baseUrl);
                     }
                 } catch (error) {
-                    throw error;
+                    throw new Error("login failed");
                 }
             });
             return;
