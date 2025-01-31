@@ -134,6 +134,7 @@ class AuthService {
 
 export default AuthService;
 
+/* test command */
 // const scraper = new AuthService();
 // // scraper.login('cookies')
 // scraper.login('', '')
