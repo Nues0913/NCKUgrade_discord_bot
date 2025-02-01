@@ -60,7 +60,7 @@ node ./main.js
     <img src="src\readmeImg\grade_ncku\embed2.png" alt="Image" width="400">
 
 ## 授權
-所有源碼皆以 MIT 許可授權
+所有代碼皆以 MIT 許可授權
 
 > 請參照[LICENSE](LICENSE)。
 
