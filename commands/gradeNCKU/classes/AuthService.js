@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Cookie, CookieJar } from 'tough-cookie';
 import { wrapper } from 'axios-cookiejar-support';
 import * as cheerio from 'cheerio';
+import NCKUgradeObj from './NCKUgradeObj.js';
 import { readFileSync } from 'fs';
 
 class AuthService {
@@ -63,10 +64,10 @@ class AuthService {
                 }
             });
             if (loginResponse.status == 200 && loginResponse.request.res.responseUrl.includes(this.#baseUrl + this.#mainPage)) {
-                console.log('登入成功:', loginResponse.request.res.responseUrl);
+                // console.log('登入成功:', loginResponse.request.res.responseUrl);
                 this.#account = account;
             } else {
-                throw new Error("未能跳轉至目標頁面");
+                throw new Error("login failed");
             }
         } catch (error) {
             throw error;
@@ -106,25 +107,24 @@ class AuthService {
             }
             // parse data
             const $ = cheerio.load(this.#cache.gradeCur);
-            console.log(`獲取用戶 ${this.#account ? this.#account : "透過cookie登入"} 成績`);
-            const gradeObj = {title: '', subjects: []};
+            // console.log(`獲取用戶 ${this.#account ? this.#account : "透過cookie登入"} 成績`);
+            const gradeObj = new NCKUgradeObj();
             $('body > table[bgcolor="#66CCFF"] > tbody').find('tr').each((index, element) => {
                 if($(element).text().includes('學年第')) {
-                    gradeObj["title"] = $(element).find('b').text().trim();
+                    gradeObj.setTitle($(element).find('b').text().trim());
                 } else if($(element).find('td:nth-child(1)').find('div').text().length >= 2) {  // 第一格有資料
                     const subject = {}; // subject[sbjectName, sbjectType, sbjectCode, score, credit]
-                    subject['sbjectName'] = $(element).find('td:nth-child(5)').find('div').text().trim()
-                    subject['sbjectType'] = $(element).find('td:nth-child(1)').find('div').text().trim()
-                    subject['sbjectCode'] = $(element).find('td:nth-child(4)').find('div').text().trim()
-                    subject['score'] = $(element).find('td:nth-child(7)').find('div').text().trim()
-                    subject['credit'] = $(element).find('td:nth-child(6)').find('div').text().trim()
-                    gradeObj["subjects"].push(subject);
+                    subject.name   = $(element).find('td:nth-child(5)').find('div').text().trim()
+                    subject.type   = $(element).find('td:nth-child(1)').find('div').text().trim()
+                    subject.score  = $(element).find('td:nth-child(4)').find('div').text().trim()
+                    subject.credit = $(element).find('td:nth-child(7)').find('div').text().trim()
+                    subject.code   = $(element).find('td:nth-child(6)').find('div').text().trim()
+                    gradeObj.addSubject(subject);
                 }
             });
-            if(gradeObj["title"] === '') {
+            if(gradeObj.title === '') {
                 throw new Error("no grade data.");
             }
-            console.log(this.#cookieJar.getCookiesSync(this.#baseUrl));
             return gradeObj;
         } catch (error) {
             throw error;
@@ -134,7 +134,7 @@ class AuthService {
 
 export default AuthService;
 
-/* test command */
+// /* test command */
 // const scraper = new AuthService();
 // // scraper.login('cookies')
 // scraper.login('', '')
