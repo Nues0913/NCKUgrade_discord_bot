@@ -33,7 +33,7 @@ TESTER_ID=your_discord_user_id_for_reload_command
     `rest.put(Routes.applicationCommands(CLIENT_ID, GUILD_ID), ...);`<br>
     之中的 `GUILD_ID` 移除，將其註冊成全域指令
 
-- `TESTER_ID`: 重新加載命令的開發者的 Discord user ID。
+- `TESTER_ID` : 重新加載命令的開發者的 Discord user ID。
 
 ### 4. 運行機器人
 通過執行 `main.js` 運行機器人：
