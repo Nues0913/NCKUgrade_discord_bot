@@ -130,10 +130,12 @@ async function execute(interaction) {
                 if (error.name === "Error [InteractionCollectorError]" && interaction.replied && (await interaction.fetchReply()).content !== '連線逾時，請再試一次') {
                     console.log(`[grade_ncku] user ${interaction.user.username} modal 連線逾時: ${new Date().toString()}]`);
                     await interaction.editReply({ content: '連線逾時，請再試一次', components: [] });
-                }else {
-                    console.log(`[grade_ncku] error in SelectMenuCollector.on\n${new Date().toString()}] ❌ error occurred:`);
-                    console.error(error);
-                    console.log(`\n`);
+                } else {
+                    if(error.name !== "Error [InteractionCollectorError]"){
+                        console.log(`[grade_ncku] error in SelectMenuCollector.on\n${new Date().toString()}] ❌ error occurred:`);
+                        console.error(error);
+                        console.log(`\n`);
+                    }
                 }
             }
         });
