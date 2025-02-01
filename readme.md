@@ -1,7 +1,7 @@
 
 # Discord 成大學籍系統爬蟲機器人
 
-<img src="src\readmeImg\let_me_finish_it.jpg" alt="Image" width="400"><br>
+<img src="src\readmeImg\good_layer.jpg" alt="Image" width="400"><br>
 
 基於 `discord.js` 的Discord機器人，Nues0913 的陽春練習專案，<br>
 目前正在尋求更安全的成大成績系統授權方法(試過 `OAuth 2.0` 但學校好像沒開放授權or我做不出來)，<br>
@@ -47,17 +47,18 @@ node ./main.js
 
     此命令不會儲存任何使用者個人資料
 
-    <img src="src\readmeImg\image.png" alt="Image" width="400">
+    <img src="src\readmeImg\grade_ncku\selectMenu.png" alt="Image" width="400">
 
-    <img src="src\readmeImg\image2.png" alt="Image" width="400">
+    <img src="src\readmeImg\grade_ncku\enter_account.png" alt="Image" width="400">
 
-    <img src="src\readmeImg\image4.png" alt="Image" width="400">
+    <img src="src\readmeImg\grade_ncku\enter_cookie.png" alt="Image" width="400">
 
-    <img src="src\readmeImg\image3.png" alt="Image" width="400">
+    <img src="src\readmeImg\grade_ncku\embed.png" alt="Image" width="400">
 
     寫文檔當下學校系統已更新故無資料，有成績資料時: 
 
-    <img src="src\readmeImg\image5.png" alt="Image" width="400">
+    <img src="src\readmeImg\grade_ncku\embed2.png" alt="Image" width="400">
+
 ## 授權
 所有源碼皆以 MIT 許可授權
 
