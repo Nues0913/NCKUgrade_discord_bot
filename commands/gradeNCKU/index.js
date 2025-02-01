@@ -1,9 +1,10 @@
-import { TextInputStyle, TextInputBuilder, ModalBuilder, ButtonBuilder, ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
-import AuthService from './crawler.js';
-import { error, time } from 'console';
+import { TextInputStyle, TextInputBuilder, ModalBuilder, ButtonBuilder, ChatInputCommandInteraction, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
+import GradeNCKUEmbedBuilder from './classes/GradeNCKUEmbedBuilder.js';
+import AuthService from './classes/AuthService.js';
+import { cloneDeep } from 'lodash-es';
 
 const data = new SlashCommandBuilder()
-    .setName('grade')
+    .setName('grade_ncku')
     .setDescription('國立成功大學學籍系統');
 
 const loginActionRow = new ActionRowBuilder()
@@ -40,7 +41,7 @@ const APEnterModal = new ModalBuilder()
         new ActionRowBuilder()
             .addComponents(
                 new TextInputBuilder()
-                .setCustomId('passwordEnter')
+                    .setCustomId('passwordEnter')
                     .setLabel('密碼')
                     .setPlaceholder('請輸入密碼')
                     .setStyle(TextInputStyle.Short)
@@ -48,34 +49,18 @@ const APEnterModal = new ModalBuilder()
             ));
 
 const cookieEnterModal = new ModalBuilder()
-            .setCustomId('gradeCookieEnter')
-            .setTitle('請輸入cookie')
+    .setCustomId('gradeCookieEnter')
+    .setTitle('請輸入cookie')
+    .addComponents(
+        new ActionRowBuilder()
             .addComponents(
-                new ActionRowBuilder()
-                    .addComponents(
-                        new TextInputBuilder()
-                            .setCustomId('cookieEnter')
-                            .setLabel('Cookie')
-                            .setPlaceholder('請輸入成績頁面cookie')
-                            .setStyle(TextInputStyle.Short)
-                            .setRequired(true)
-                    ));
-
-class gradeNCKUEmbedBuilder extends EmbedBuilder {
-    constructor() {
-        super();
-        this.setColor('#0099ff')
-            .setTitle("國立成功大學學籍系統")
-            .setURL("https://qrys.ncku.edu.tw/ncku/qrys02.asp")
-            .setFooter({ text: 'Powered by Nues0913' });
-    }
-
-    // 添加自定义方法
-    setGradeInfo(student, gpa) {
-        this.setDescription(`学生: **${student}**\nGPA: **${gpa}**`);
-        return this;
-    }
-}
+                new TextInputBuilder()
+                    .setCustomId('cookieEnter')
+                    .setLabel('Cookie')
+                    .setPlaceholder('請輸入成績頁面cookie')
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(true)
+            ));
 
 // const logoutActionRow = new ActionRowBuilder()
 //     .addComponents(
@@ -95,62 +80,76 @@ async function execute(interaction) {
         components: [loginActionRow],
         flags: "Ephemeral",
         withResponse: true, // necessary for response.message
-        });
+    });
     try {
-        response = await response.resource.message.awaitMessageComponent({
-            filter : i => i.customId === 'gradeSelectMenu',
+        const SelectMenuCollector = response.resource.message.createMessageComponentCollector({
+            filter: i => i.customId === 'gradeSelectMenu' && i.user.id === interaction.user.id,
             time: 60_000
         });
-        if(response.customId === 'gradeSelectMenu'){
-            if(!['account','cookie'].includes(response.values[0])) throw new Error('confirmValueError');
-            const modal = response.values[0] === 'account' ? APEnterModal : cookieEnterModal;
-            await response.showModal(modal);
-            await response.awaitModalSubmit({
-                filter: i => ['gradeAPEnter', 'gradeCookieEnter'].includes(i.customId) && i.user.id == response.user.id,
-                time: 60_000
-            })
-                .then(async (modalInteraction) => {
-                    let a, p;
-                    if(modalInteraction.customId == 'gradeAPEnter'){
-                        a = modalInteraction.fields.getTextInputValue('accountEnter');
-                        p = modalInteraction.fields.getTextInputValue('passwordEnter');
-                    } else {
-                        a = modalInteraction.fields.getTextInputValue('cookieEnter');
-                    }
-                    const gradeAuth = new AuthService();
-                    await gradeAuth.login(a, p);
-                    const gradeObj = await gradeAuth.getGradeCur();
-                    await modalInteraction.deferUpdate();
-                    await interaction.editReply({content: `${a}`, components: []});
-                    // console.log(a);
-                    // console.log(p);
-                    // interaction.editReply({content: `${a}, ${p}`, components: []});
+        SelectMenuCollector.on('collect', async (menuInteraction) => {
+            if (menuInteraction.customId !== 'gradeSelectMenu') return;
+            if (!['account', 'cookie'].includes(menuInteraction.values[0])) return;
+            try {
+                const modal = menuInteraction.values[0] === 'account' ? cloneDeep(APEnterModal) : cloneDeep(cookieEnterModal);
+                modal.setCustomId(modal.data.custom_id + Date.now().toString());
+                await menuInteraction.showModal(modal);
+                await menuInteraction.awaitModalSubmit({
+                    filter: i => modal.data.custom_id === i.customId && i.user.id == menuInteraction.user.id && i.message.id === response.resource.message.id,
+                    time: 60_000
                 })
-                .catch((error) => {
+                    .then(async (modalInteraction) => {
+                        let a, p;
+                        if (modalInteraction.customId.includes('gradeAPEnter')) {
+                            a = modalInteraction.fields.getTextInputValue('accountEnter');
+                            p = modalInteraction.fields.getTextInputValue('passwordEnter');
+                        } else {
+                            a = modalInteraction.fields.getTextInputValue('cookieEnter');
+                        }
+    
+                        const gradeAuth = new AuthService();
+                        try {   // login successful
+                            await gradeAuth.login(a, p);
+                            const gradeEmbed = new GradeNCKUEmbedBuilder(await gradeAuth.getGradeCur());
+                            if(!modalInteraction.deferred && !modalInteraction.replied) await modalInteraction.deferUpdate();
+                            await menuInteraction.editReply({ content: '', embeds: [gradeEmbed], components: [] });
+                            SelectMenuCollector.stop('successful');
+                        } catch (error) {   // login failed
+                            if(error.message === 'login failed'){
+                                if(!modalInteraction.deferred && !modalInteraction.replied) await modalInteraction.deferUpdate();
+                                await menuInteraction.editReply({ content: '登入失敗，請再試一次', embeds: [], components: [] });
+                                SelectMenuCollector.stop('failed');
+                            } else {
+                                throw error;
+                            }
+                        }
+                    })
+                    .catch((error) => {
+                        throw error;
+                    });
+            } catch (error) {
+                if (error.name === "Error [InteractionCollectorError]" && interaction.replied && (await interaction.fetchReply()).content !== '連線逾時，請再試一次') {
+                    console.log(`[gradeNCKU] user ${interaction.user.username} ${modal.data.custom_id} 連線逾時: ${new Date().toString()}]`);
+                    await interaction.editReply({ content: '連線逾時，請再試一次', components: [] });
+                }else {
+                    console.log(`[gradeNCKU] error in SelectMenuCollector.on\n${new Date().toString()}] ❌ error occurred:`);
                     console.error(error);
-                })
-
-            // // grade crawling
-            // const authService = new AuthService();
-            // let gradeObj = null;
-            // await authService.login(, )
-            //     .then(async () => {
-            //         gradeObj = await scraper.getGradeCur();
-            //         console.dir(grade);
-            //     })
-            //     .catch((error) => {
-            //         console.error(error);
-            //     });
-            // await interaction.editReply({content: `${confirmation.values[0]}`, components: []});
-        } else {
-            throw new Error('confirmIdError');
-        }
+                    console.log(`\n`);
+                }
+            }
+        });
+        SelectMenuCollector.on('end', async (collected, reason) => {
+            if (reason === 'time' && interaction.replied && (await interaction.fetchReply()).content !== '連線逾時，請再試一次') {
+                console.log(`[gradeNCKU] user ${interaction.user.username} gradeSelectMenu 連線逾時: ${new Date().toString()}]`);
+                await interaction.editReply({ content: '連線逾時，請再試一次', embeds: [], components: [] });
+            } else {
+                
+            }
+        });
     } catch (error) {
-        if(error.name === "Error [InteractionCollectorError]"){
-            await interaction.editReply({content: '連線逾時，請再試一次', components: []});
-        } else {
-            await interaction.editReply({content: '發生錯誤，請稍後再試', components: []});
-        }
+        console.log(`[gradeNCKU] ❌ error occurred ${new Date().toString()}:`);
+        console.error(error);
+        console.log(`\n`);
+        await interaction.editReply({ content: '發生錯誤，請稍後再試', components: [] });
     }
 
 }
