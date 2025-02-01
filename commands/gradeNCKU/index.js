@@ -128,10 +128,10 @@ async function execute(interaction) {
                     });
             } catch (error) {
                 if (error.name === "Error [InteractionCollectorError]" && interaction.replied && (await interaction.fetchReply()).content !== '連線逾時，請再試一次') {
-                    console.log(`[gradeNCKU] user ${interaction.user.username} ${modal.data.custom_id} 連線逾時: ${new Date().toString()}]`);
+                    console.log(`[grade_ncku] user ${interaction.user.username} modal 連線逾時: ${new Date().toString()}]`);
                     await interaction.editReply({ content: '連線逾時，請再試一次', components: [] });
                 }else {
-                    console.log(`[gradeNCKU] error in SelectMenuCollector.on\n${new Date().toString()}] ❌ error occurred:`);
+                    console.log(`[grade_ncku] error in SelectMenuCollector.on\n${new Date().toString()}] ❌ error occurred:`);
                     console.error(error);
                     console.log(`\n`);
                 }
@@ -139,14 +139,14 @@ async function execute(interaction) {
         });
         SelectMenuCollector.on('end', async (collected, reason) => {
             if (reason === 'time' && interaction.replied && (await interaction.fetchReply()).content !== '連線逾時，請再試一次') {
-                console.log(`[gradeNCKU] user ${interaction.user.username} gradeSelectMenu 連線逾時: ${new Date().toString()}]`);
+                console.log(`[grade_ncku] user ${interaction.user.username} gradeSelectMenu 連線逾時: ${new Date().toString()}]`);
                 await interaction.editReply({ content: '連線逾時，請再試一次', embeds: [], components: [] });
             } else {
                 
             }
         });
     } catch (error) {
-        console.log(`[gradeNCKU] ❌ error occurred ${new Date().toString()}:`);
+        console.log(`[grade_ncku] ❌ error occurred ${new Date().toString()}:`);
         console.error(error);
         console.log(`\n`);
         await interaction.editReply({ content: '發生錯誤，請稍後再試', components: [] });
