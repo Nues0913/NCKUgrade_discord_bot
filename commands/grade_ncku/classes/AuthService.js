@@ -116,9 +116,9 @@ class AuthService {
                     const subject = {}; // subject[sbjectName, sbjectType, sbjectCode, score, credit]
                     subject.name   = $(element).find('td:nth-child(5)').find('div').text().trim()
                     subject.type   = $(element).find('td:nth-child(1)').find('div').text().trim()
-                    subject.score  = $(element).find('td:nth-child(4)').find('div').text().trim()
-                    subject.credit = $(element).find('td:nth-child(7)').find('div').text().trim()
-                    subject.code   = $(element).find('td:nth-child(6)').find('div').text().trim()
+                    subject.code  = $(element).find('td:nth-child(4)').find('div').text().trim()
+                    subject.score = $(element).find('td:nth-child(7)').find('div').text().trim()
+                    subject.credit   = $(element).find('td:nth-child(6)').find('div').text().trim()
                     gradeObj.addSubject(subject);
                 }
             });
